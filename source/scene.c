@@ -5,6 +5,7 @@
 #include <math.h>
 
 #define MAX_RENDER_DISTANCE 100.0
+#define MAX_REFLECTIONS 16
 
 camera camera_lookat(vec3 position, vec3 target, vec3 up, Real fov) {
 	vec3 direction = normalize_vec3(sub_vec3(target, position));
@@ -17,12 +18,12 @@ camera camera_lookat(vec3 position, vec3 target, vec3 up, Real fov) {
 	};
 }
 
-scene_node create_node(size_t shape_size_bytes, void* shape_data, color color, intersect_func int_fn) {
+scene_node create_node(size_t shape_size_bytes, void* shape_data, material mat, intersect_func int_fn) {
 	scene_node ret;
 	ret.shape = malloc(shape_size_bytes);
 	memcpy(ret.shape, shape_data, shape_size_bytes);
 	ret.intersect = int_fn;
-	ret.color = color;
+	ret.material = mat;
 
 	return ret;
 }
@@ -84,41 +85,100 @@ void destroy_scene(scene* s) {
 	free(s->lights);
 }
 
-color get_illuminated_color(scene* s, color c, vec3 position) {
+typedef struct {
+	color color;
+	vec3 incidence_vector;
+} light_cast_result;
+
+light_cast_result ray_cast_light(scene* s, vec3 position, scene_light l) {
+	intersect_result light_result = {
+		l.position,
+		{ 0, 0, 0 },
+		mag2_vec3(sub_vec3(l.position, position)),
+		true
+	};
+
+	vec3 incidence_vec = sub_vec3(l.position, position);
+
+	ray r = {
+		position,
+		normalize_vec3(incidence_vec)
+	};
+
+	for (size_t shape = 0; shape < s->node_count; shape++) {
+		if (s->nodes[shape].shape != NULL) {
+			intersect_result result = s->nodes[shape].intersect(&r, s->nodes[shape].shape);
+
+			if (result.success && result.distance < light_result.distance) {
+				return (light_cast_result) { { 0, 0, 0 }, { 0, 0, 0 } };
+			}
+		}
+	}
+
+	Real d2 = mag2_vec3(incidence_vec);
+	Real r2 = l.intensity * l.intensity;
+	Real intensity = clamp(1 - (d2 / r2), 0, 1);
+	intensity *= intensity;
+	return (light_cast_result) { { l.color.r * intensity, l.color.g * intensity, l.color.b * intensity }, incidence_vec };
+}
+
+color get_illuminated_color(scene* s, color c, vec3 position, vec3 normal) {
 	color accumulator = { 0, 0, 0 };
 
 	for (size_t light = 0; light < s->light_count; light++) {
 		scene_light curr_light = s->lights[light];
-		Real d2 = mag2_vec3(sub_vec3(curr_light.position, position));
-		Real intensity = curr_light.intensity / d2;
-		color light_color = { curr_light.color.r * intensity, curr_light.color.g * intensity, curr_light.color.b * intensity };
-		color diffuse = { light_color.r * c.r, light_color.g * c.g, light_color.b * c.b };
-		accumulator = (color){ accumulator.r + diffuse.r, accumulator.g + diffuse.g, accumulator.b + diffuse.b };
+
+		light_cast_result light_result = ray_cast_light(s, position, curr_light);
+
+		Real cos_theta = fmax(0, dot_vec3(normalize_vec3(light_result.incidence_vector), normal));
+
+		color diffuse = { light_result.color.r * c.r * cos_theta, light_result.color.g * c.g * cos_theta, light_result.color.b * c.b * cos_theta };
+		accumulator = (color){ fmax(accumulator.r, diffuse.r), fmax(accumulator.g, diffuse.g), fmax(accumulator.b, diffuse.b) };
 	}
 
-	return accumulator;
+	return (color){ fmin(accumulator.r, 1), fmin(accumulator.g, 1), fmin(accumulator.b, 1) };
 }
 
-color ray_cast(scene* s, ray r) {
+color ray_cast(scene* s, ray r, size_t reflection_count) {
 	intersect_result nearest_result = {
-		{0, 0, 0},
+		{ 0, 0, 0 },
+		{ 0, 0, 0 },
 		MAX_RENDER_DISTANCE,
 		false
 	};
 
 	color result_color = { 0, 0, 0 };
+	size_t result_shape = 0;
 
 	for (size_t shape = 0; shape < s->node_count; shape++) {
-		intersect_result result = s->nodes[shape].intersect(&r, s->nodes[shape].shape);
+		if (s->nodes[shape].shape != NULL) {
+			intersect_result result = s->nodes[shape].intersect(&r, s->nodes[shape].shape);
 
-		if (result.success && result.distance < nearest_result.distance) {
-			nearest_result = result;
-			result_color = s->nodes[shape].color;
+			if (result.success && result.distance < nearest_result.distance) {
+				nearest_result = result;
+				result_color = s->nodes[shape].material.color;
+				result_shape = shape;
+			}
 		}
 	}
 
 	if (nearest_result.success) {
-		color  c = get_illuminated_color(s, result_color, nearest_result.location);
+		color  c = get_illuminated_color(s, result_color, nearest_result.position, nearest_result.normal);
+
+		if (s->nodes[result_shape].material.reflectivity > 0 && reflection_count > 0) {
+			vec3 reflection = reflect(r.direction, nearest_result.normal);
+			Real reflectivity = s->nodes[result_shape].material.reflectivity;
+
+			ray reflect_ray = {
+				nearest_result.position,
+				reflection
+			};
+
+			color reflected_color = ray_cast(s, reflect_ray, reflection_count - 1);
+
+			c = (color){ c.r + (reflected_color.r * reflectivity), c.g + (reflected_color.g * reflectivity), c.b + (reflected_color.b * reflectivity) };
+		}
+
 		return c;
 	}
 
@@ -154,7 +214,7 @@ void render_scene(scene* s, camera* c, image* i) {
 				normalize_vec3(sub_vec3(origin, eye_pos))
 			};
 
-			color c = ray_cast(s, r);
+			color c = ray_cast(s, r, 16);
 
 			pixel outcolor = {
 				c.r * 255.0,

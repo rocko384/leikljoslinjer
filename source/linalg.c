@@ -215,3 +215,9 @@ vec3 mul_mat3_vec3(mat3 a, vec3 b) {
 vec4 mul_mat4_vec4(mat4 a, vec4 b) {
 	return (vec4) { dot_vec4(a.row0, b), dot_vec4(a.row1, b), dot_vec4(a.row2, b), dot_vec4(a.row3, b) };
 }
+
+
+Real clamp(Real a, Real min, Real max) {
+	Real b = fmax(a, min);
+	return fmin(b, max);
+}

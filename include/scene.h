@@ -19,9 +19,16 @@ typedef struct {
 } color;
 
 typedef struct {
+	color color;
+	Real reflectivity;
+	Real transparency;
+	Real refraction_index;
+} material;
+
+typedef struct {
 	void* shape;
 	intersect_func intersect;
-	color color;
+	material material;
 } scene_node;
 
 enum light_type {
@@ -41,14 +48,14 @@ typedef struct {
 
 camera camera_lookat(vec3 position, vec3 target, vec3 up, Real fov);
 
-scene_node create_node(size_t shape_size_bytes, void* shape_data, color color, intersect_func int_fn);
+scene_node create_node(size_t shape_size_bytes, void* shape_data, material mat, intersect_func int_fn);
 void destroy_node(scene_node node);
 
 scene_light create_point_light(color color, vec3 position, Real intensity);
 scene_light create_directional_light(color color, vec3 direction, Real intensity);
 scene_light create_spotlight(color color, vec3 position, vec3 direction, Real intensity, Real range_angle);
 
-#define CREATE_NODE(ShapeT, ShapeValue, Color, IntersectFunc) create_node(sizeof(ShapeT), &ShapeValue, Color, IntersectFunc)
+#define CREATE_NODE(ShapeT, ShapeValue, Material, IntersectFunc) create_node(sizeof(ShapeT), &ShapeValue, Material, IntersectFunc)
 
 typedef struct {
 	scene_node* nodes;

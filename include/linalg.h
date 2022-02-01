@@ -1,6 +1,7 @@
 #pragma once
 
 #define Real float
+#define EPSILON ((Real)1e-6)
 
 typedef struct {
 	Real x;
@@ -95,3 +96,5 @@ mat4 mul_mat4(mat4 a, mat4 b);
 vec2 mul_mat2_vec2(mat2 a, vec2 b);
 vec3 mul_mat3_vec3(mat3 a, vec3 b);
 vec4 mul_mat4_vec4(mat4 a, vec4 b);
+
+Real clamp(Real a, Real min, Real max);
