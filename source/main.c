@@ -57,7 +57,7 @@ int main(int argc, char** argv) {
 		{ 0, 1, 0 }
 	};
 
-	image test_image = create_image(2560, 1440);
+	image test_image = create_image(3840, 2160);
 	
 	for (size_t x = 0; x < test_image.width; x++) {
 		for (size_t y = 0; y < test_image.height; y++) {
@@ -82,7 +82,7 @@ int main(int argc, char** argv) {
 	sample_scene.lights[0] = create_point_light((color) { 1, 1, 1 }, (vec3) { 0, 4, 0 }, 18);
 	sample_scene.lights[1] = create_point_light((color) { 1, 1, 1 }, (vec3) { 7, 0, 0 }, 20);
 
-	render_scene(&sample_scene, &test_camera, &test_image);
+	render_scene(&sample_scene, &test_camera, &test_image, 16);
 
 	write_image("raytraceout.png", &test_image);
 

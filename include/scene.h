@@ -67,4 +67,4 @@ typedef struct {
 void init_scene(scene* s, size_t num_nodes, size_t num_lights);
 void destroy_scene(scene* s);
 
-void render_scene(scene* s, camera* c, image* i);
+void render_scene(scene* s, camera* c, image* i, size_t thread_count);

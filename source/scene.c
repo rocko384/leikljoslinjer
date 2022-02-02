@@ -2,7 +2,10 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <math.h>
+
+#include <tinycthread.h>
 
 #define MAX_RENDER_DISTANCE 100.0
 #define MAX_REFLECTIONS 16
@@ -185,7 +188,61 @@ color ray_cast(scene* s, ray r, size_t reflection_count) {
 	return (color) { 0, 0, 0 };
 }
 
-void render_scene(scene* s, camera* c, image* i) {
+typedef struct {
+	Real aspect;
+	vec3 right;
+	vec3 up;
+	vec3 eye_pos;
+} view_context;
+
+typedef struct {
+	size_t begin_x;
+	size_t begin_y;
+	size_t end_x;
+	size_t end_y;
+} render_worker_params;
+
+typedef struct {
+	scene* s;
+	camera* c;
+	image* i;
+	view_context view;
+	render_worker_params params;
+} render_worker_context;
+
+void render_scene_worker(render_worker_context* context) {
+	for (size_t x = context->params.begin_x; x < context->params.end_x; x++) {
+		for (size_t y = context->params.begin_y; y < context->params.end_y; y++) {
+			Real rel_x = (((Real)x) / ((Real)context->i->width)) - 0.5;
+			rel_x *= 2;
+			rel_x *= context->view.aspect;
+			Real rel_y = (((Real)y) / ((Real)context->i->height)) - 0.5;
+			rel_y *= -2;
+
+			vec3 right_vec = scale_vec3_scalar(context->view.right, rel_x);
+			vec3 up_vec = scale_vec3_scalar(context->view.up, rel_y);
+			vec3 offset_vec = add_vec3(right_vec, up_vec);
+			vec3 origin = add_vec3(context->c->position, offset_vec);
+
+			ray r = {
+				origin,
+				normalize_vec3(sub_vec3(origin, context->view.eye_pos))
+			};
+
+			color c = ray_cast(context->s, r, 16);
+
+			pixel outcolor = {
+				c.r * 255.0,
+				c.g * 255.0,
+				c.b * 255.0
+			};
+
+			write_pixel(context->i, x, y, outcolor);
+		}
+	}
+}
+
+void render_scene(scene* s, camera* c, image* i, size_t thread_count) {
 	// Calc eye coords in world space
 	Real aspect = ((Real)i->width) / ((Real)i->height);
 	Real half_w = aspect / 2;
@@ -196,33 +253,47 @@ void render_scene(scene* s, camera* c, image* i) {
 	vec3 right = normalize_vec3(cross_vec3(c->up, eye_dir));
 	vec3 up = normalize_vec3(cross_vec3(eye_dir, right));
 
-	for (size_t x = 0; x < i->width; x++) {
-		for (size_t y = 0; y < i->height; y++) {
-			Real rel_x = (((Real)x) / ((Real)i->width)) - 0.5;
-			rel_x *= 2;
-			rel_x *= aspect;
-			Real rel_y = (((Real)y) / ((Real)i->height)) - 0.5;
-			rel_y *= -2;
+	view_context view = {
+		aspect,
+		right,
+		up,
+		eye_pos
+	};
 
-			vec3 right_vec = scale_vec3_scalar(right, rel_x);
-			vec3 up_vec = scale_vec3_scalar(up, rel_y);
-			vec3 offset_vec = add_vec3(right_vec, up_vec);
-			vec3 origin = add_vec3(c->position, offset_vec);
+	thrd_t threads[thread_count];
+	memset(threads, 0, thread_count * sizeof(thrd_t));
 
-			ray r = {
-				origin,
-				normalize_vec3(sub_vec3(origin, eye_pos))
-			};
+	render_worker_context worker_contexts[thread_count];
+	memset(worker_contexts, 0, thread_count * sizeof(render_worker_context));
 
-			color c = ray_cast(s, r, 16);
+	size_t width_increment = i->width / thread_count;
 
-			pixel outcolor = {
-				c.r * 255.0,
-				c.g * 255.0,
-				c.b * 255.0
-			};
+	for (size_t t = 0; t < thread_count; t++) {
+		worker_contexts[t] = (render_worker_context){
+			s,
+			c,
+			i,
+			view,
+			{
+				t * width_increment,
+				0,
+				(t + 1) * width_increment,
+				i->height
+			}
+		};
+	}
 
-			write_pixel(i, x, y, outcolor);
+	worker_contexts[thread_count - 1].params.end_x = i->width;
+
+	for (size_t t = 0; t < thread_count; t++) {
+		int error = thrd_create(&threads[t], render_scene_worker, &worker_contexts[t]);
+
+		if (error != thrd_success) {
+			printf("Error creating worker threads\n");
 		}
+	}
+
+	for (size_t t = 0; t < thread_count; t++) {
+		thrd_join(threads[t], NULL);
 	}
 }

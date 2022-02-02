@@ -9,13 +9,27 @@ set	(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/CMake" ${CMAKE_MODULE_PATH})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 set (STB_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/Dependencies/stb")
+set (TINYCTHREAD_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/Dependencies/tinycthread")
 
 set(SOURCE
 	"source/main.c"
 	"include/util.h"
- "include/linalg.h" "source/linalg.c" "include/geometry.h" "source/geometry.c" "include/scene.h" "source/scene.c" "source/dep_impl.c" "include/image.h" "source/image.c")
+	"include/linalg.h"
+	"source/linalg.c"
+	"include/geometry.h"
+	"source/geometry.c"
+	"include/scene.h"
+	"source/scene.c"
+	"source/dep_impl.c"
+	"include/image.h"
+	"source/image.c"
+)
 
-add_executable (${PROJECT_NAME} ${SOURCE})
+set(LIB
+	"${TINYCTHREAD_INCLUDE_DIR}/tinycthread.c"
+)
+
+add_executable (${PROJECT_NAME} ${SOURCE} ${LIB})
 
 target_include_directories(
 	${PROJECT_NAME}
@@ -23,4 +37,5 @@ target_include_directories(
 	"include"
 	${VMA_INCLUDE_DIR}
 	${STB_INCLUDE_DIR}
+	${TINYCTHREAD_INCLUDE_DIR}
 )

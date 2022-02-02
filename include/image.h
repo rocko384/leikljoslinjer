@@ -19,5 +19,6 @@ image create_image(size_t width, size_t height);
 void destroy_image(image i);
 
 void write_pixel(image* i, size_t x, size_t y, pixel p);
+pixel read_pixel(image* i, size_t x, size_t y);
 
 void write_image(const char* file, image* i);

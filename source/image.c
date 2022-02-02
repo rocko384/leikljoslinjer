@@ -26,6 +26,11 @@ void write_pixel(image* i, size_t x, size_t y, pixel p) {
 	i->pixels[idx] = p;
 }
 
+pixel read_pixel(image* i, size_t x, size_t y) {
+	size_t idx = (y * i->width) + x;
+	return i->pixels[idx];
+}
+
 void write_image(const char* file, image* i) {
 	stbi_write_png(file, i->width, i->height, sizeof(pixel), i->pixels, i->width * sizeof(pixel));
 }
