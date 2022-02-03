@@ -70,6 +70,7 @@ intersect_result ray_intersect_box(ray* r, box* b) {
 		fmin(b->min.z, b->max.z)
 	};
 
+	/*
 	vec3 top_normal = normalize_vec3(b->top_normal);
 	vec3 bottom_normal = scale_vec3_scalar(top_normal, -1);
 	vec3 aa_forward_normal = normalize_vec3(sub_vec3((vec3) { min.x, min.y, max.z }, min));
@@ -77,6 +78,14 @@ intersect_result ray_intersect_box(ray* r, box* b) {
 	vec3 left_normal = scale_vec3_scalar(right_normal, -1);
 	vec3 forward_normal = cross_vec3(top_normal, left_normal);
 	vec3 backward_normal = scale_vec3_scalar(forward_normal, -1);
+	*/
+
+	vec3 top_normal = normalize_vec3(b->top_normal);
+	vec3 bottom_normal = scale_vec3_scalar(top_normal, -1);
+	vec3 forward_normal = normalize_vec3(b->front_normal);
+	vec3 backward_normal = scale_vec3_scalar(forward_normal, -1);
+	vec3 right_normal = normalize_vec3(cross_vec3(top_normal, forward_normal));
+	vec3 left_normal = scale_vec3_scalar(right_normal, -1);
 
 	vec4 top_plane = { top_normal.x, top_normal.y, top_normal.z, -dot_vec3(top_normal, max) };
 	vec4 bottom_plane = { bottom_normal.x, bottom_normal.y, bottom_normal.z, -dot_vec3(bottom_normal, min) };
@@ -109,7 +118,7 @@ intersect_result ray_intersect_box(ray* r, box* b) {
 		if (point_inside_left < 0 && point_inside_right < 0 && point_inside_front < 0 && point_inside_back < 0) {
 			nearest_result.position = int_point;
 			nearest_result.normal = top_normal;
-			nearest_result.distance = top_intersection;//mag_vec3(sub_vec3(int_point, r->origin));
+			nearest_result.distance = top_intersection;
 			nearest_result.success = true;
 		}
 	}
@@ -124,7 +133,7 @@ intersect_result ray_intersect_box(ray* r, box* b) {
 		if (point_inside_left < 0 && point_inside_right < 0 && point_inside_front < 0 && point_inside_back < 0) {
 			nearest_result.position = int_point;
 			nearest_result.normal = bottom_normal;
-			nearest_result.distance = bottom_intersection;//mag_vec3(sub_vec3(int_point, r->origin));
+			nearest_result.distance = bottom_intersection;
 			nearest_result.success = true;
 		}
 	}
@@ -139,7 +148,7 @@ intersect_result ray_intersect_box(ray* r, box* b) {
 		if (point_inside_top < 0 && point_inside_bottom < 0 && point_inside_front < 0 && point_inside_back < 0) {
 			nearest_result.position = int_point;
 			nearest_result.normal = left_normal;
-			nearest_result.distance = left_intersection;//mag_vec3(sub_vec3(int_point, r->origin));
+			nearest_result.distance = left_intersection;
 			nearest_result.success = true;
 		}
 	}
@@ -154,7 +163,7 @@ intersect_result ray_intersect_box(ray* r, box* b) {
 		if (point_inside_top < 0 && point_inside_bottom < 0 && point_inside_front < 0 && point_inside_back < 0) {
 			nearest_result.position = int_point;
 			nearest_result.normal = right_normal;
-			nearest_result.distance = right_intersection;//mag_vec3(sub_vec3(int_point, r->origin));
+			nearest_result.distance = right_intersection;
 			nearest_result.success = true;
 		}
 	}
@@ -169,7 +178,7 @@ intersect_result ray_intersect_box(ray* r, box* b) {
 		if (point_inside_top < 0 && point_inside_bottom < 0 && point_inside_left < 0 && point_inside_right < 0) {
 			nearest_result.position = int_point;
 			nearest_result.normal = forward_normal;
-			nearest_result.distance = forward_intersection;//mag_vec3(sub_vec3(int_point, r->origin));
+			nearest_result.distance = forward_intersection;
 			nearest_result.success = true;
 		}
 	}
@@ -184,10 +193,28 @@ intersect_result ray_intersect_box(ray* r, box* b) {
 		if (point_inside_top < 0 && point_inside_bottom < 0 && point_inside_left < 0 && point_inside_right < 0) {
 			nearest_result.position = int_point;
 			nearest_result.normal = backward_normal;
-			nearest_result.distance = backward_intersection;//mag_vec3(sub_vec3(int_point, r->origin));
+			nearest_result.distance = backward_intersection;
 			nearest_result.success = true;
 		}
 	}
 
 	return nearest_result;
+}
+
+
+void translate_sphere(sphere* s, vec3 v) {
+	s->position = add_vec3(s->position, v);
+}
+
+void translate_box(box* b, vec3 v) {
+	b->min = add_vec3(b->min, v);
+	b->max = add_vec3(b->max, v);
+}
+
+
+void rotate_box(box* b, quat r) {
+	b->min = rotate_vec3(b->min, r);
+	b->max = rotate_vec3(b->max, r);
+	b->top_normal = rotate_vec3(b->top_normal, r);
+	b->front_normal = rotate_vec3(b->front_normal, r);
 }

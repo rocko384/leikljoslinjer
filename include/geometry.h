@@ -18,7 +18,11 @@ typedef struct {
 	vec3 min;
 	vec3 max;
 	vec3 top_normal;
+	vec3 front_normal;
 } box;
+
+#define UNIT_SPHERE (sphere) { (vec3) { 0, 0, 0 }, 1 }
+#define UNIT_BOX (box) { (vec3) { -0.5, -0.5, -0.5 }, (vec3) { 0.5, 0.5, 0.5 }, (vec3) { 0, 1, 0 }, (vec3) { 0, 0, 1 } }
 
 vec3 reflect(vec3 a, vec3 n);
 
@@ -35,3 +39,8 @@ typedef intersect_result(*intersect_func)(ray*, void*);
 
 intersect_result ray_intersect_sphere(ray* r, sphere* s);
 intersect_result ray_intersect_box(ray* r, box* b);
+
+void translate_sphere(sphere* s, vec3 v);
+void translate_box(box* b, vec3 v);
+
+void rotate_box(box* b, quat r);

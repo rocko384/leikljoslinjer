@@ -221,3 +221,51 @@ Real clamp(Real a, Real min, Real max) {
 	Real b = fmax(a, min);
 	return fmin(b, max);
 }
+
+
+quat ident_quat() {
+	return (quat) { 1, 0, 0, 0 };
+}
+
+quat mul_quat(quat a, quat b) {
+	return (quat) {
+		(a.w * b.w) - (a.x * b.x) - (a.y * b.y) - (a.z * b.z),
+		(a.w * b.x) + (a.x * b.w) + (a.y * b.z) - (a.z * b.y),
+		(a.w * b.y) - (a.x * b.z) + (a.y * b.w) + (a.z * b.x),
+		(a.w * b.z) + (a.x * b.y) - (a.y * b.x) + (a.z * b.w)
+	};
+}
+
+quat conjugate_quat(quat q) {
+	return (quat) { q.w, -q.x, -q.y, -q.z };
+}
+
+Real norm_quat(quat q) {
+	return sqrt((q.w * q.w) + (q.x * q.x) + (q.y * q.y) + (q.z * q.z));
+}
+
+quat unit_quat(quat q) {
+	Real norm = norm_quat(q);
+	return (quat) { q.w / norm, q.x / norm, q.y / norm, q.z / norm };
+}
+
+quat reciprocal_quat(quat q) {
+	Real norm2 = norm_quat(q) * norm_quat(q);
+	quat conj = conjugate_quat(q);
+	return (quat) { conj.w / norm2, conj.x / norm2, conj.y / norm2, conj.z / norm2 };
+}
+
+
+quat rotate_on_axis(vec3 axis, Real angle) {
+	Real a_2 = (angle * PI) / (2 * 180);
+	Real sin_a_2 = sin(a_2);
+	return (quat) { cos(a_2), sin_a_2 * axis.x, sin_a_2 * axis.y, sin_a_2 * axis.z };
+}
+
+vec3 rotate_vec3(vec3 v, quat r) {
+	quat point = { 0, v.x, v.y, v.z };
+	quat conj = conjugate_quat(r);
+	quat res = mul_quat(mul_quat(r, point), conj);
+
+	return (vec3) { res.x, res.y, res.z };
+}

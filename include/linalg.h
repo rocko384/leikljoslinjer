@@ -1,6 +1,7 @@
 #pragma once
 
 #define Real float
+#define PI 3.14159265358979323846
 #define EPSILON ((Real)1e-6)
 
 typedef struct {
@@ -38,6 +39,13 @@ typedef struct {
 	vec4 row2;
 	vec4 row3;
 } mat4;
+
+typedef struct {
+	Real w;
+	Real x;
+	Real y;
+	Real z;
+} quat;
 
 vec2 add_vec2(vec2 a, vec2 b);
 vec3 add_vec3(vec3 a, vec3 b);
@@ -98,3 +106,13 @@ vec3 mul_mat3_vec3(mat3 a, vec3 b);
 vec4 mul_mat4_vec4(mat4 a, vec4 b);
 
 Real clamp(Real a, Real min, Real max);
+
+quat ident_quat();
+quat mul_quat(quat a, quat b);
+quat conjugate_quat(quat q);
+Real norm_quat(quat q);
+quat unit_quat(quat q);
+quat reciprocal_quat(quat q);
+
+quat rotate_on_axis(vec3 axis, Real angle);
+vec3 rotate_vec3(vec3 v, quat r);

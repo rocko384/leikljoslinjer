@@ -8,7 +8,7 @@
 #include <tinycthread.h>
 
 #define MAX_RENDER_DISTANCE 100.0
-#define MAX_REFLECTIONS 16
+#define MAX_REFLECTIONS 64
 
 camera camera_lookat(vec3 position, vec3 target, vec3 up, Real fov) {
 	vec3 direction = normalize_vec3(sub_vec3(target, position));
@@ -231,7 +231,7 @@ void render_scene_worker(render_worker_context* context) {
 				normalize_vec3(sub_vec3(origin, context->view.eye_pos))
 			};
 
-			color c = ray_cast(context->s, r, 16);
+			color c = ray_cast(context->s, r, MAX_REFLECTIONS);
 
 			pixel outcolor = {
 				c.r * 255.0,
