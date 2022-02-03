@@ -248,7 +248,7 @@ void render_scene(scene* s, camera* c, image* i, size_t thread_count) {
 	// Calc eye coords in world space
 	Real aspect = ((Real)i->width) / ((Real)i->height);
 	Real half_w = aspect / 2;
-	Real fov_2 = c->fov / 2;
+	Real fov_2 = (c->fov * PI) / (2 * 180);
 	Real eye_dist = -(half_w / tan(fov_2));
 	vec3 eye_dir = normalize_vec3(c->direction);
 	vec3 eye_pos = add_vec3(c->position, scale_vec3_scalar(eye_dir, eye_dist));

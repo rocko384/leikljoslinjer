@@ -82,7 +82,7 @@ int main(int argc, char** argv) {
 
 	write_image("testout.png", &test_image);
 
-	camera test_camera = camera_lookat((vec3) { 7, 5, -5 }, (vec3) {0, 0, 0}, (vec3) {0, 1, 0}, 45);
+	camera test_camera = camera_lookat((vec3) { 7, 5, -5 }, (vec3) {0, 0, 0}, (vec3) {0, 1, 0}, 80);
 
 	scene sample_scene;
 	init_scene(&sample_scene, 6, 2);
