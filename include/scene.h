@@ -32,6 +32,7 @@ typedef struct {
 } scene_node;
 
 enum light_type {
+	null,
 	point,
 	directional,
 	spotlight

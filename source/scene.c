@@ -97,7 +97,7 @@ light_cast_result ray_cast_light(scene* s, vec3 position, scene_light l) {
 	intersect_result light_result = {
 		l.position,
 		{ 0, 0, 0 },
-		mag2_vec3(sub_vec3(l.position, position)),
+		mag_vec3(sub_vec3(l.position, position)),
 		true
 	};
 
@@ -107,7 +107,7 @@ light_cast_result ray_cast_light(scene* s, vec3 position, scene_light l) {
 		position,
 		normalize_vec3(incidence_vec)
 	};
-
+	
 	for (size_t shape = 0; shape < s->node_count; shape++) {
 		if (s->nodes[shape].shape != NULL) {
 			intersect_result result = s->nodes[shape].intersect(&r, s->nodes[shape].shape);
@@ -131,12 +131,14 @@ color get_illuminated_color(scene* s, color c, vec3 position, vec3 normal) {
 	for (size_t light = 0; light < s->light_count; light++) {
 		scene_light curr_light = s->lights[light];
 
-		light_cast_result light_result = ray_cast_light(s, position, curr_light);
+		if (curr_light.type != null) {
+			light_cast_result light_result = ray_cast_light(s, position, curr_light);
 
-		Real cos_theta = fmax(0, dot_vec3(normalize_vec3(light_result.incidence_vector), normal));
+			Real cos_theta = fmax(0, dot_vec3(normalize_vec3(light_result.incidence_vector), normal));
 
-		color diffuse = { light_result.color.r * c.r * cos_theta, light_result.color.g * c.g * cos_theta, light_result.color.b * c.b * cos_theta };
-		accumulator = (color){ fmax(accumulator.r, diffuse.r), fmax(accumulator.g, diffuse.g), fmax(accumulator.b, diffuse.b) };
+			color diffuse = { light_result.color.r * c.r * cos_theta, light_result.color.g * c.g * cos_theta, light_result.color.b * c.b * cos_theta };
+			accumulator = (color){ fmax(accumulator.r, diffuse.r), fmax(accumulator.g, diffuse.g), fmax(accumulator.b, diffuse.b) };
+		}
 	}
 
 	return (color){ fmin(accumulator.r, 1), fmin(accumulator.g, 1), fmin(accumulator.b, 1) };
@@ -285,15 +287,20 @@ void render_scene(scene* s, camera* c, image* i, size_t thread_count) {
 
 	worker_contexts[thread_count - 1].params.end_x = i->width;
 
-	for (size_t t = 0; t < thread_count; t++) {
-		int error = thrd_create(&threads[t], render_scene_worker, &worker_contexts[t]);
+	if (thread_count > 1) {
+		for (size_t t = 0; t < thread_count; t++) {
+			int error = thrd_create(&threads[t], render_scene_worker, &worker_contexts[t]);
 
-		if (error != thrd_success) {
-			printf("Error creating worker threads\n");
+			if (error != thrd_success) {
+				printf("Error creating worker threads\n");
+			}
+		}
+
+		for (size_t t = 0; t < thread_count; t++) {
+			thrd_join(threads[t], NULL);
 		}
 	}
-
-	for (size_t t = 0; t < thread_count; t++) {
-		thrd_join(threads[t], NULL);
+	else {
+		render_scene_worker(&worker_contexts[0]);
 	}
 }

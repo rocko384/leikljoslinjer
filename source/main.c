@@ -57,7 +57,7 @@ int main(int argc, char** argv) {
 		{ 0, 1, 0 }
 	};
 
-	image test_image = create_image(3840, 2160);
+	image test_image = create_image(960, 540);
 	
 	for (size_t x = 0; x < test_image.width; x++) {
 		for (size_t y = 0; y < test_image.height; y++) {
@@ -79,10 +79,10 @@ int main(int argc, char** argv) {
 	sample_scene.nodes[3] = CREATE_NODE(box, sample_box2, box1_mat, ray_intersect_box);
 	sample_scene.nodes[4] = CREATE_NODE(box, sample_box3, box1_mat, ray_intersect_box);
 
-	sample_scene.lights[0] = create_point_light((color) { 1, 1, 1 }, (vec3) { 0, 4, 0 }, 18);
+	sample_scene.lights[0] = create_point_light((color) { 1, 1, 1 }, (vec3) { 0, 10, 0 }, 18);
 	sample_scene.lights[1] = create_point_light((color) { 1, 1, 1 }, (vec3) { 7, 0, 0 }, 20);
 
-	render_scene(&sample_scene, &test_camera, &test_image, 16);
+	render_scene(&sample_scene, &test_camera, &test_image, 1);
 
 	write_image("raytraceout.png", &test_image);
 
