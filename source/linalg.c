@@ -93,6 +93,20 @@ Real mag2_vec4(vec4 a) {
 }
 
 
+Real distance_vec2(vec2 a, vec2 b) {
+	return mag_vec2(sub_vec2(a, b));
+}
+
+Real distance_vec3(vec3 a, vec3 b) {
+	return mag_vec3(sub_vec3(a, b));
+}
+
+Real distance_vec4(vec4 a, vec4 b) {
+	return mag_vec4(sub_vec4(a, b));
+}
+
+
+
 vec2 normalize_vec2(vec2 a) {
 	return scale_vec2_scalar(a, 1 / mag_vec2(a));
 }
@@ -103,6 +117,28 @@ vec3 normalize_vec3(vec3 a) {
 
 vec4 normalize_vec4(vec4 a) {
 	return scale_vec4_scalar(a, 1 / mag_vec4(a));
+}
+
+
+vec2 project_vec2(vec2 a, vec2 b) {
+	vec2 norm_b = normalize_vec2(b);
+	Real a1 = dot_vec2(a, norm_b);
+
+	return scale_vec2_scalar(norm_b, a1);
+}
+
+vec3 project_vec3(vec3 a, vec3 b) {
+	vec3 norm_b = normalize_vec3(b);
+	Real a1 = dot_vec3(a, norm_b);
+
+	return scale_vec3_scalar(norm_b, a1);
+}
+
+vec4 project_vec4(vec4 a, vec4 b) {
+	vec4 norm_b = normalize_vec4(b);
+	Real a1 = dot_vec4(a, norm_b);
+
+	return scale_vec4_scalar(norm_b, a1);
 }
 
 

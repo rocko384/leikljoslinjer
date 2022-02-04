@@ -75,9 +75,17 @@ Real mag2_vec2(vec2 a);
 Real mag2_vec3(vec3 a);
 Real mag2_vec4(vec4 a);
 
+Real distance_vec2(vec2 a, vec2 b);
+Real distance_vec3(vec3 a, vec3 b);
+Real distance_vec4(vec4 a, vec4 b);
+
 vec2 normalize_vec2(vec2 a);
 vec3 normalize_vec3(vec3 a);
 vec4 normalize_vec4(vec4 a);
+
+vec2 project_vec2(vec2 a, vec2 b);
+vec3 project_vec3(vec3 a, vec3 b);
+vec4 project_vec4(vec4 a, vec4 b);
 
 vec3 cross_vec3(vec3 a, vec3 b);
 

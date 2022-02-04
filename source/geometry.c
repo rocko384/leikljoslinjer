@@ -70,16 +70,6 @@ intersect_result ray_intersect_box(ray* r, box* b) {
 		fmin(b->min.z, b->max.z)
 	};
 
-	/*
-	vec3 top_normal = normalize_vec3(b->top_normal);
-	vec3 bottom_normal = scale_vec3_scalar(top_normal, -1);
-	vec3 aa_forward_normal = normalize_vec3(sub_vec3((vec3) { min.x, min.y, max.z }, min));
-	vec3 right_normal = normalize_vec3(cross_vec3(top_normal, aa_forward_normal));
-	vec3 left_normal = scale_vec3_scalar(right_normal, -1);
-	vec3 forward_normal = cross_vec3(top_normal, left_normal);
-	vec3 backward_normal = scale_vec3_scalar(forward_normal, -1);
-	*/
-
 	vec3 top_normal = normalize_vec3(b->top_normal);
 	vec3 bottom_normal = scale_vec3_scalar(top_normal, -1);
 	vec3 forward_normal = normalize_vec3(b->front_normal);
@@ -201,6 +191,94 @@ intersect_result ray_intersect_box(ray* r, box* b) {
 	return nearest_result;
 }
 
+intersect_result ray_intersect_cylinder(ray* r, cylinder* c) {
+	vec3 dir = normalize_vec3(r->direction);
+	vec3 up = normalize_vec3(c->top_normal);
+	vec3 down = scale_vec3_scalar(up, -1);
+	Real half_height = c->height / 2;
+
+	vec3 proj_dir_norm = project_vec3(dir, up);
+
+	vec3 vecA = sub_vec3(dir, proj_dir_norm);
+	vec3 d_p = sub_vec3(r->origin, c->position);
+	vec3 proj_d_p_norm = project_vec3(d_p, up);
+	vec3 d_p_proj_d_p = sub_vec3(d_p, proj_d_p_norm);
+
+	Real A = dot_vec3(vecA, vecA);
+	Real B = 2 * dot_vec3(vecA, d_p_proj_d_p);
+	Real C = dot_vec3(d_p_proj_d_p, d_p_proj_d_p) - (c->radius * c->radius);
+
+	Real t1 = (-B + sqrt((B * B) - (4 * A * C))) / (2 * A);
+	Real t2 = (-B - sqrt((B * B) - (4 * A * C))) / (2 * A);
+
+	if (t1 > 0 || t2 > 0) {
+		vec3 point;
+		bool on_surface = false;
+
+		if (t1 < t2 && t1 > 0) {
+			point = add_vec3(r->origin, scale_vec3_scalar(dir, t1));
+			on_surface = true;
+		}
+		else if (t2 > 0) {
+			point = add_vec3(r->origin, scale_vec3_scalar(dir, t2));
+			on_surface = true;
+		}
+
+		if (on_surface) {
+			vec3 point_normal_proj = project_vec3(sub_vec3(point, c->position), up);
+
+			Real bound = mag_vec3(point_normal_proj);
+
+			if (bound < half_height) {
+				vec3 normal = sub_vec3(point, add_vec3(point_normal_proj, c->position));
+
+				return (intersect_result) {
+					point,
+					normalize_vec3(normal),
+					distance_vec3(point, r->origin),
+					true
+				};
+			}
+		}
+	}
+
+	vec3 top_point = add_vec3(c->position, scale_vec3_scalar(up, half_height));
+	vec3 bottom_point = add_vec3(c->position, scale_vec3_scalar(down, half_height));
+
+	Real top_intersect = ray_intersect_plane(*r, down, top_point);
+	Real bottom_intersect = ray_intersect_plane(*r, up, bottom_point);
+
+	if (top_intersect >= 0) {
+		vec3 int_point = add_vec3(r->origin, scale_vec3_scalar(dir, top_intersect));
+		Real dist = distance_vec3(int_point, top_point);
+
+		if (dist <= c->radius) {
+			return (intersect_result) {
+				int_point,
+				normalize_vec3(up),
+				top_intersect,
+				true
+			};
+		}
+	}
+
+	if (bottom_intersect >= 0) {
+		vec3 int_point = add_vec3(r->origin, scale_vec3_scalar(dir, bottom_intersect));
+		Real dist = distance_vec3(int_point, bottom_point);
+
+		if (dist <= c->radius) {
+			return (intersect_result) {
+				int_point,
+				normalize_vec3(down),
+				bottom_intersect,
+				true
+			};
+		}
+	}
+
+	return NULL_INTERSECTION;
+}
+
 
 void translate_sphere(sphere* s, vec3 v) {
 	s->position = add_vec3(s->position, v);
@@ -211,10 +289,18 @@ void translate_box(box* b, vec3 v) {
 	b->max = add_vec3(b->max, v);
 }
 
+void translate_cylinder(cylinder* c, vec3 v) {
+	c->position = add_vec3(c->position, v);
+}
+
 
 void rotate_box(box* b, quat r) {
 	b->min = rotate_vec3(b->min, r);
 	b->max = rotate_vec3(b->max, r);
 	b->top_normal = rotate_vec3(b->top_normal, r);
 	b->front_normal = rotate_vec3(b->front_normal, r);
+}
+
+void rotate_cylinder(cylinder* c, quat r) {
+	c->top_normal = rotate_vec3(c->top_normal, r);
 }
